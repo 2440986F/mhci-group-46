@@ -5,23 +5,16 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-class Map extends StatefulWidget {
+import '../../game_instance.dart';
+
+class MapHomeState extends StatelessWidget {
+  final Stream<Position> positionStream;
   final LatLng targetPosition;
-  const Map({super.key, required this.targetPosition});
 
-  @override
-  State<StatefulWidget> createState() {
-    return _MapHomeState();
-  }
-}
+  late MapController mapController;
 
-class _MapHomeState extends State<Map> {
-  late final MapController mapController;
-  Stream<Position> positionStream = Geolocator.getPositionStream(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
-
-  @override
-  void initState() {
-    super.initState();
+  MapHomeState(
+      {super.key, required this.positionStream, required this.targetPosition}) {
     mapController = MapController();
   }
 
@@ -56,11 +49,12 @@ class _MapHomeState extends State<Map> {
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: LatLng(snapshot.data!.latitude, snapshot.data!.longitude),
+                        point: LatLng(
+                            snapshot.data!.latitude, snapshot.data!.longitude),
                         builder: (ctx) => const Icon(Icons.my_location),
                       ),
                       Marker(
-                        point: widget.targetPosition,
+                        point: targetPosition,
                         builder: (ctx) => const Icon(Icons.location_on),
                       )
                     ],

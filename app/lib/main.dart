@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/game/game_instance.dart';
 import 'package:flutter_application_2/game_controller.dart';
-import 'map/map.dart';
+import 'game/screens/map/map.dart';
 import 'package:geolocator/geolocator.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
   Geolocator.checkPermission().then((permissionAllowed) => {
-    if(permissionAllowed == LocationPermission.denied) {
-      Geolocator.requestPermission().then((value) => {})
-    }
-  });
+        if (permissionAllowed == LocationPermission.denied)
+          {Geolocator.requestPermission().then((value) => {})}
+      });
   runApp(MyApp());
 }
 
@@ -40,12 +40,13 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: FutureBuilder(
-        future: roundReady,
-        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-          if(snapshot.hasData) return Map(targetPosition: controller.target!);
-          else return const Text("Loading");
-        }
-      ),
+          future: roundReady,
+          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            if (snapshot.hasData)
+              return GameInstance();
+            else
+              return const Text("Loading");
+          }),
     );
   }
 }
