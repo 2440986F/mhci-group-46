@@ -6,7 +6,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class Map extends StatefulWidget {
-  const Map({super.key, initalLocation});
+  final LatLng targetPosition;
+  const Map({super.key, required this.targetPosition});
 
   @override
   State<StatefulWidget> createState() {
@@ -37,7 +38,8 @@ class _MapHomeState extends State<Map> {
                 options: MapOptions(
                   center:
                       LatLng(snapshot.data!.latitude, snapshot.data!.longitude),
-                  zoom: 9.2,
+                  zoom: 18.0,
+                  rotation: snapshot.data!.heading,
                 ),
                 nonRotatedChildren: [
                   AttributionWidget.defaultWidget(
@@ -56,6 +58,10 @@ class _MapHomeState extends State<Map> {
                       Marker(
                         point: LatLng(snapshot.data!.latitude, snapshot.data!.longitude),
                         builder: (ctx) => const Icon(Icons.my_location),
+                      ),
+                      Marker(
+                        point: widget.targetPosition,
+                        builder: (ctx) => const Icon(Icons.location_on),
                       )
                     ],
                   )
