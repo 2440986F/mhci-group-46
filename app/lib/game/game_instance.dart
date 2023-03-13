@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,12 +12,13 @@ enum _GameDifficulties { EASY, MEDIUM, HARD }
 
 class GameInstance extends StatefulWidget {
   _GameStates state = _GameStates.SELECT_DISTANCE;
-
   LatLng? targetPosition;
 
   Stream<Position> positionStream = Geolocator.getPositionStream(
       locationSettings:
           const LocationSettings(accuracy: LocationAccuracy.high));
+
+  var timer;
 
   @override
   State<StatefulWidget> createState() {
@@ -40,6 +42,9 @@ class GameState extends State<GameInstance> {
       case _GameStates.SELECT_DIFFICULTY:
         break;
       case _GameStates.PLAYING:
+        widget.timer = Timer(Duration(milliseconds: 50), () {
+          setState(() {});
+        });
         return MapHomeState(
           positionStream: widget.positionStream,
           targetPosition: widget.targetPosition!,

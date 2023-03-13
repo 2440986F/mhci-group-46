@@ -10,6 +10,7 @@ import '../../game_instance.dart';
 class MapHomeState extends StatelessWidget {
   final Stream<Position> positionStream;
   final LatLng targetPosition;
+  int sonarRadius = 25;
 
   late MapController mapController;
 
@@ -58,7 +59,17 @@ class MapHomeState extends StatelessWidget {
                         builder: (ctx) => const Icon(Icons.location_on),
                       )
                     ],
-                  )
+                  ),
+                  CircleLayer(circles: [
+                    CircleMarker(
+                      point: targetPosition,
+                      useRadiusInMeter: true,
+                      radius: DateTime.now().millisecondsSinceEpoch % 5000 + 25,
+                      borderColor: const Color.fromARGB(255, 255, 0, 0),
+                      borderStrokeWidth: 2,
+                      color: const Color.fromARGB(0, 255, 255, 255),
+                    ),
+                  ])
                 ],
               )
             ];
