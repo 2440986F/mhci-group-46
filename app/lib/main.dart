@@ -14,12 +14,54 @@ void main() {
   runApp(MyApp());
 }
 
+class MenuScreen extends StatelessWidget {
+  const MenuScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Menu'),
+      ),
+      body: Center(
+        child: ListView(
+          padding: const EdgeInsets.all(8),
+          children: <Widget>[
+            Container(
+              height: 50,
+              color: Colors.blue,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/map');
+                },
+                child: const Text('Go to map view')
+              ),
+            ),
+            const Divider(),
+            Container(
+              height: 50,
+              color: Colors.blue,
+              child: ElevatedButton(
+                onPressed: () {
+                  
+                },
+                child: const Text('Go nowhere')
+              ),
+
+            ),
+          ]
+        )
+      ),
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   final GameController controller = GameController();
   Future<bool>? roundReady;
 
   MyApp({super.key}) {
-    roundReady = controller.setTarget(5);
+    roundReady = controller.setTarget(5); //ada asks: what does this do?
   }
 
   // This widget is the root of your application.
@@ -28,24 +70,35 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Radsonar',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below toelow to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: FutureBuilder(
+
+      initialRoute: '/menu',
+
+      routes: {
+        '/map': (context) => FutureBuilder(
         future: roundReady,
         builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-          if(snapshot.hasData) return Map(targetPosition: controller.target!);
-          else return const Text("Loading");
+          if(snapshot.hasData) {
+            return Scaffold(
+              body: Center(
+                child: Map(targetPosition: controller.target!),
+              ),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/menu');
+                },
+                tooltip: 'Menu',
+                child: const Icon(Icons.list),
+              ),
+            );
+          } else {
+            return const Text("Loading");
+          }
         }
       ),
+      '/menu': (context) => const MenuScreen(),
+      },
     );
   }
 }
