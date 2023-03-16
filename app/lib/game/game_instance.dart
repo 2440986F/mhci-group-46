@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_2/game/screens/map/map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,7 +20,7 @@ class GameInstance extends StatefulWidget {
       locationSettings:
           const LocationSettings(accuracy: LocationAccuracy.high));
 
-  var timer;
+  Timer? timer;
 
   @override
   State<StatefulWidget> createState() {
@@ -42,9 +44,27 @@ class GameState extends State<GameInstance> {
       case _GameStates.SELECT_DIFFICULTY:
         break;
       case _GameStates.PLAYING:
-        widget.timer = Timer(Duration(milliseconds: 50), () {
+        // This is the timer that updates the sonar ping on the map.
+        widget.timer = Timer(const Duration(milliseconds: 50), () {
           setState(() {});
         });
+        // This plays the ping.
+        // Isolate.spawn((int a) async {
+        //   while (widget.state == _GameStates.PLAYING) {
+        //     Position? lastPosition = await Geolocator.getLastKnownPosition();
+        //     if (lastPosition != null) {
+        //       double distance = Geolocator.distanceBetween(
+        //           lastPosition.latitude,
+        //           lastPosition.longitude,
+        //           widget.targetPosition!.latitude,
+        //           widget.targetPosition!.longitude);
+
+        //       SystemSound.play(SystemSoundType.click);
+        //       await Future.delayed(
+        //           Duration(milliseconds: (distance * 100).toInt()));
+        //     }
+        //   }
+        // }, 0);
         return MapHomeState(
           positionStream: widget.positionStream,
           targetPosition: widget.targetPosition!,

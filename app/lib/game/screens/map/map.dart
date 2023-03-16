@@ -64,7 +64,8 @@ class MapHomeState extends StatelessWidget {
                     CircleMarker(
                       point: targetPosition,
                       useRadiusInMeter: true,
-                      radius: DateTime.now().millisecondsSinceEpoch % 5000 + 25,
+                      radius:
+                          (DateTime.now().millisecondsSinceEpoch % 2500) + 25,
                       borderColor: const Color.fromARGB(255, 255, 0, 0),
                       borderStrokeWidth: 2,
                       color: const Color.fromARGB(0, 255, 255, 255),
