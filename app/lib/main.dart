@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/game/game_instance.dart';
-import 'package:flutter_application_2/game_controller.dart';
 import 'game/screens/map/map.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -30,7 +29,7 @@ class MenuScreen extends StatelessWidget {
           color: Colors.blue,
           child: ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/map');
+                Navigator.pushNamed(context, '/game_home');
               },
               child: const Text('Go to map view')),
         ),
@@ -47,12 +46,7 @@ class MenuScreen extends StatelessWidget {
 }
 
 class MyApp extends StatelessWidget {
-  final GameController controller = GameController();
-  Future<bool>? roundReady;
-
-  MyApp({super.key}) {
-    roundReady = controller.setTarget(5); //ada asks: what does this do?
-  }
+  const MyApp({super.key});
 
   // This widget is the root of your application.
   @override
@@ -62,6 +56,11 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
+      initialRoute: '/menu',
+      routes: {
+        '/game_home': (context) => GameInstance(),
+        '/menu': (context) => const MenuScreen(),
+      },
     );
   }
 }
