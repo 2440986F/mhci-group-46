@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:isolate';
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_2/game/screens/map/map.dart';
@@ -15,12 +16,18 @@ enum _GameDifficulties { EASY, MEDIUM, HARD }
 class GameInstance extends StatefulWidget {
   _GameStates state = _GameStates.SELECT_DISTANCE;
   LatLng? targetPosition;
+  Isolate? pingIsolate;
+  ReceivePort receiveFromPingIsolate = ReceivePort();
+  SendPort? sendToPingIsolate;
+  AudioPlayer audioPlayer = AudioPlayer();
 
   Stream<Position> positionStream = Geolocator.getPositionStream(
       locationSettings:
           const LocationSettings(accuracy: LocationAccuracy.high));
 
   Timer? timer;
+
+  bool pingDone = false;
 
   @override
   State<StatefulWidget> createState() {
@@ -38,6 +45,33 @@ class GameState extends State<GameInstance> {
             _setTarget(5).then((value) => setState(() {
                   widget.state = _GameStates.PLAYING;
                   widget.targetPosition = value;
+
+                  Isolate.spawn(_playSonarPing, [
+                    widget.receiveFromPingIsolate.sendPort,
+                    widget.targetPosition!,
+                    widget.audioPlayer,
+                  ]).then((isolate) => widget.pingIsolate = isolate);
+
+                  // widget.receiveFromPingIsolate
+                  //     .elementAt(0)
+                  //     .then((sendPort) => () {
+                  //           print("HGello");
+                  //           widget.sendToPingIsolate = sendPort;
+                  //           print(sendPort);
+                  //         });
+
+                  widget.receiveFromPingIsolate.listen((message) {
+                    if (message is SendPort) {
+                      widget.sendToPingIsolate = message;
+                    } else {
+                      widget.audioPlayer
+                          .play(AssetSource('sounds/sonar-ping-95840.mp3'));
+                      Geolocator.getLastKnownPosition().then((value) {
+                        widget.sendToPingIsolate
+                            ?.send([value!.latitude, value.longitude]);
+                      });
+                    }
+                  });
                 }));
           }),
         );
@@ -45,31 +79,41 @@ class GameState extends State<GameInstance> {
         break;
       case _GameStates.PLAYING:
         // This is the timer that updates the sonar ping on the map.
+        // Might find a better way of doing this, it is very laggy atm.
         widget.timer = Timer(const Duration(milliseconds: 50), () {
           setState(() {});
         });
-        // This plays the ping.
-        // Isolate.spawn((int a) async {
-        //   while (widget.state == _GameStates.PLAYING) {
-        //     Position? lastPosition = await Geolocator.getLastKnownPosition();
-        //     if (lastPosition != null) {
-        //       double distance = Geolocator.distanceBetween(
-        //           lastPosition.latitude,
-        //           lastPosition.longitude,
-        //           widget.targetPosition!.latitude,
-        //           widget.targetPosition!.longitude);
 
-        //       SystemSound.play(SystemSoundType.click);
-        //       await Future.delayed(
-        //           Duration(milliseconds: (distance * 100).toInt()));
-        //     }
-        //   }
-        // }, 0);
-        return MapHomeState(
-          positionStream: widget.positionStream,
-          targetPosition: widget.targetPosition!,
-        );
+        // Return a map when positionStream gets new data, an error
+        // if something goes wrong, and a loading thing if we are still
+        // waiting.
+        return StreamBuilder<Position>(
+            stream: widget.positionStream,
+            builder: (BuildContext context, AsyncSnapshot<Position> snapshot) {
+              List<Widget> children;
+              if (snapshot.hasData) {
+                //widget.sendToPingIsolate?.send(snapshot.data);
+                children = <Widget>[
+                  MapHomeState(
+                    userPosition: snapshot.data!,
+                    targetPosition: widget.targetPosition!,
+                  )
+                ];
+              } else if (snapshot.hasError) {
+                children = <Widget>[const Text("Error")];
+              } else {
+                children = <Widget>[const Text("Loading")];
+              }
+              return Scaffold(
+                  appBar: AppBar(title: const Text("Radsonar")),
+                  body: Center(
+                    child: Stack(
+                      children: children,
+                    ),
+                  ));
+            });
       case _GameStates.FOUND_OBJECT:
+        widget.pingIsolate?.kill(priority: Isolate.beforeNextEvent);
         break;
     }
     return const Text("Not implemented");
@@ -90,4 +134,66 @@ Future<LatLng> _setTarget(double range) async {
   );
 
   return target;
+}
+
+void _playSonarPing(List<dynamic> args) async {
+  SendPort sendToMain = args[0];
+  LatLng targetPosition = args[1];
+
+  ReceivePort receiver = ReceivePort();
+  sendToMain.send(receiver.sendPort);
+
+  int timeBetweenPings = 1000;
+
+  // We change the delay between pings every time the user's position updates.
+  receiver.listen((message) => () async {
+        print("D");
+        LatLng userPosition = LatLng(message[0], message[1]);
+
+        double distance = Geolocator.distanceBetween(
+            userPosition.latitude,
+            userPosition.longitude,
+            targetPosition.latitude,
+            targetPosition.longitude);
+
+        timeBetweenPings = (distance * 100).toInt();
+      });
+
+  while (true) {
+    print(timeBetweenPings);
+
+    await Future.delayed(Duration(milliseconds: timeBetweenPings));
+
+    sendToMain.send(timeBetweenPings);
+  }
+}
+
+_playSonarPing1(List<dynamic> args) async {
+  SendPort sendToMain = args[0];
+  LatLng targetPosition = args[1];
+
+  ReceivePort receiver = ReceivePort();
+  sendToMain.send(receiver.sendPort);
+
+  int timeBetweenPings = 1000;
+
+  while (true) {
+    print(timeBetweenPings);
+    sendToMain.send(timeBetweenPings);
+
+    await Future.delayed(Duration(milliseconds: timeBetweenPings));
+
+    var r = await receiver.take(1).first;
+    LatLng userPosition = LatLng(r[0], r[1]);
+
+    print(userPosition);
+
+    double distance = Geolocator.distanceBetween(
+        userPosition.latitude,
+        userPosition.longitude,
+        targetPosition.latitude,
+        targetPosition.longitude);
+
+    timeBetweenPings = (distance).toInt();
+  }
 }
