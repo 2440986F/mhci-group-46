@@ -25,6 +25,8 @@ class GameInstance extends StatefulWidget {
       locationSettings:
           const LocationSettings(accuracy: LocationAccuracy.high));
 
+  Position? lastPosition;
+
   Timer? timer;
 
   bool pingDone = false;
@@ -96,11 +98,13 @@ class GameState extends State<GameInstance> {
           if (message is SendPort) {
             widget.sendToPingIsolate = message;
           } else {
-            widget.audioPlayer.play(AssetSource('sounds/sonar-ping-95840.mp3'));
-            Geolocator.getLastKnownPosition().then((value) {
-              widget.sendToPingIsolate
-                  ?.send([value!.latitude, value.longitude]);
-            });
+            widget.audioPlayer.play(AssetSource('sounds/click-21156.mp3'));
+            //Geolocator.getLastKnownPosition().then((value) {
+            widget.sendToPingIsolate?.send([
+              widget.lastPosition!.latitude,
+              widget.lastPosition!.longitude
+            ]);
+            // });
           }
         });
         return Scaffold(
@@ -146,6 +150,7 @@ class GameState extends State<GameInstance> {
               List<Widget> children;
               if (snapshot.hasData) {
                 //widget.sendToPingIsolate?.send(snapshot.data);
+                widget.lastPosition = snapshot.data;
                 children = <Widget>[
                   MapHomeState(
                     userPosition: snapshot.data!,
@@ -171,57 +176,68 @@ class GameState extends State<GameInstance> {
     }
     return const Text("Not implemented");
   }
-}
 
-Future<LatLng> _setTarget(double range) async {
-  Position userPosition = await Geolocator.getCurrentPosition();
+  static void _playSonarPing(List<dynamic> args) async {
+    SendPort sendToMain = args[0];
+    LatLng targetPosition = args[1];
 
-  // About 111km in 1 degree of latitude/longitude.
-  double maxOffset = range / 111;
+    ReceivePort receiver = ReceivePort();
+    final broadcastStream = receiver.asBroadcastStream();
+    sendToMain.send(receiver.sendPort);
 
-  var r = Random();
+    int timeBetweenPings = 1000;
 
-  LatLng target = LatLng(
-    userPosition.latitude + r.nextDouble() * 2 * maxOffset - maxOffset,
-    userPosition.longitude + r.nextDouble() * 2 * maxOffset - maxOffset,
-  );
+    // We change the delay between pings every time the user's position updates.
+    // broadcastStream.listen(
+    //     (message) => () {
+    //           print("D");
+    //           LatLng userPosition = LatLng(message[0], message[1]);
 
-  return target;
-}
+    //           double distance = Geolocator.distanceBetween(
+    //               userPosition.latitude,
+    //               userPosition.longitude,
+    //               targetPosition.latitude,
+    //               targetPosition.longitude);
 
-void _playSonarPing(List<dynamic> args) async {
-  SendPort sendToMain = args[0];
-  LatLng targetPosition = args[1];
+    //           timeBetweenPings = (distance * 100).toInt();
+    //         },
+    //     onError: (e) => print(e));
 
-  ReceivePort receiver = ReceivePort();
-  sendToMain.send(receiver.sendPort);
+    while (true) {
+      print(timeBetweenPings);
 
-  int timeBetweenPings = 1000;
+      await Future.delayed(Duration(milliseconds: timeBetweenPings));
 
-  // We change the delay between pings every time the user's position updates.
-  receiver.listen((message) => () async {
-        print("D");
-        LatLng userPosition = LatLng(message[0], message[1]);
+      sendToMain.send(timeBetweenPings);
 
-        double distance = Geolocator.distanceBetween(
-            userPosition.latitude,
-            userPosition.longitude,
-            targetPosition.latitude,
-            targetPosition.longitude);
+      var userPosition = await broadcastStream.take(1).first;
 
-        timeBetweenPings = (distance * 100).toInt();
-      });
+      double distance = Geolocator.distanceBetween(userPosition[0],
+          userPosition[1], targetPosition.latitude, targetPosition.longitude);
 
-  while (true) {
-    print(timeBetweenPings);
+      timeBetweenPings = (distance).toInt();
+    }
+  }
 
-    await Future.delayed(Duration(milliseconds: timeBetweenPings));
+  Future<LatLng> _setTarget(double range) async {
+    Position userPosition = await Geolocator.getCurrentPosition();
+    widget.lastPosition = userPosition;
 
-    sendToMain.send(timeBetweenPings);
+    // About 111km in 1 degree of latitude/longitude.
+    double maxOffset = range / 111;
+
+    var r = Random();
+
+    LatLng target = LatLng(
+      userPosition.latitude + r.nextDouble() * 2 * maxOffset - maxOffset,
+      userPosition.longitude + r.nextDouble() * 2 * maxOffset - maxOffset,
+    );
+
+    return target;
   }
 }
 
-_playSonarPing1(List<dynamic> args) async {
+void _playSonarPing1(List<dynamic> args) async {
   SendPort sendToMain = args[0];
   LatLng targetPosition = args[1];
 
@@ -247,6 +263,6 @@ _playSonarPing1(List<dynamic> args) async {
         targetPosition.latitude,
         targetPosition.longitude);
 
-    timeBetweenPings = (distance).toInt();
+    timeBetweenPings = (distance / 1000).toInt();
   }
 }
