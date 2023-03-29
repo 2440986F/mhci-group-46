@@ -10,12 +10,16 @@ import '../../game_instance.dart';
 class MapHomeState extends StatelessWidget {
   final Position userPosition;
   final LatLng targetPosition;
+  final GameDifficulties difficulty;
   int sonarRadius = 25;
 
   late MapController mapController;
 
   MapHomeState(
-      {super.key, required this.userPosition, required this.targetPosition}) {
+      {super.key,
+      required this.userPosition,
+      required this.targetPosition,
+      required this.difficulty}) {
     mapController = MapController();
   }
 
@@ -33,6 +37,23 @@ class MapHomeState extends StatelessWidget {
           source: 'OpenStreetMap contributors',
           onSourceTapped: null,
         ),
+        if (difficulty == GameDifficulties.EASY)
+          Align(
+              alignment: Alignment.topCenter,
+              child: Transform.rotate(
+                angle: Geolocator.bearingBetween(
+                        userPosition.latitude,
+                        userPosition.longitude,
+                        targetPosition.latitude,
+                        targetPosition.longitude) *
+                    pi /
+                    180,
+                child: const Icon(
+                  Icons.arrow_upward_outlined,
+                  color: Colors.black,
+                  size: 100,
+                ),
+              )),
       ],
       children: [
         TileLayer(
@@ -51,16 +72,17 @@ class MapHomeState extends StatelessWidget {
             )
           ],
         ),
-        CircleLayer(circles: [
-          CircleMarker(
-            point: targetPosition,
-            useRadiusInMeter: true,
-            radius: (DateTime.now().millisecondsSinceEpoch % 2500) + 25,
-            borderColor: const Color.fromARGB(255, 255, 0, 0),
-            borderStrokeWidth: 2,
-            color: const Color.fromARGB(0, 255, 255, 255),
-          ),
-        ])
+        if (difficulty != GameDifficulties.HARD)
+          CircleLayer(circles: [
+            CircleMarker(
+              point: targetPosition,
+              useRadiusInMeter: true,
+              radius: (DateTime.now().millisecondsSinceEpoch % 5000) + 25,
+              borderColor: const Color.fromARGB(255, 255, 0, 0),
+              borderStrokeWidth: 2,
+              color: const Color.fromARGB(0, 255, 255, 255),
+            ),
+          ])
       ],
     );
   }

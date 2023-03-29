@@ -11,10 +11,11 @@ import 'package:geolocator/geolocator.dart';
 
 enum _GameStates { SELECT_DISTANCE, SELECT_DIFFICULTY, PLAYING, FOUND_OBJECT }
 
-enum _GameDifficulties { EASY, MEDIUM, HARD }
+enum GameDifficulties { EASY, MEDIUM, HARD }
 
 class GameInstance extends StatefulWidget {
   _GameStates state = _GameStates.SELECT_DISTANCE;
+  GameDifficulties? difficulty;
   LatLng? targetPosition;
   Isolate? pingIsolate;
   ReceivePort receiveFromPingIsolate = ReceivePort();
@@ -119,7 +120,23 @@ class GameState extends State<GameInstance> {
                   child: ElevatedButton(
                       child: const Text('Easy'),
                       onPressed: () {
-                        setState(() => widget.state = _GameStates.PLAYING);
+                        setState(() {
+                          widget.difficulty = GameDifficulties.EASY;
+                          widget.state = _GameStates.PLAYING;
+                        });
+                      }),
+                ),
+                const Divider(),
+                Container(
+                  height: 50,
+                  color: Colors.blue,
+                  child: ElevatedButton(
+                      child: const Text('Medium'),
+                      onPressed: () {
+                        setState(() {
+                          widget.difficulty = GameDifficulties.MEDIUM;
+                          widget.state = _GameStates.PLAYING;
+                        });
                       }),
                 ),
                 const Divider(),
@@ -129,7 +146,10 @@ class GameState extends State<GameInstance> {
                   child: ElevatedButton(
                       child: const Text('Hard'),
                       onPressed: () {
-                        setState(() => widget.state = _GameStates.PLAYING);
+                        setState(() {
+                          widget.difficulty = GameDifficulties.HARD;
+                          widget.state = _GameStates.PLAYING;
+                        });
                       }),
                 ),
               ],
@@ -155,6 +175,7 @@ class GameState extends State<GameInstance> {
                   MapHomeState(
                     userPosition: snapshot.data!,
                     targetPosition: widget.targetPosition!,
+                    difficulty: widget.difficulty!,
                   )
                 ];
               } else if (snapshot.hasError) {
@@ -187,25 +208,7 @@ class GameState extends State<GameInstance> {
 
     int timeBetweenPings = 1000;
 
-    // We change the delay between pings every time the user's position updates.
-    // broadcastStream.listen(
-    //     (message) => () {
-    //           print("D");
-    //           LatLng userPosition = LatLng(message[0], message[1]);
-
-    //           double distance = Geolocator.distanceBetween(
-    //               userPosition.latitude,
-    //               userPosition.longitude,
-    //               targetPosition.latitude,
-    //               targetPosition.longitude);
-
-    //           timeBetweenPings = (distance * 100).toInt();
-    //         },
-    //     onError: (e) => print(e));
-
     while (true) {
-      print(timeBetweenPings);
-
       await Future.delayed(Duration(milliseconds: timeBetweenPings));
 
       sendToMain.send(timeBetweenPings);
@@ -215,7 +218,9 @@ class GameState extends State<GameInstance> {
       double distance = Geolocator.distanceBetween(userPosition[0],
           userPosition[1], targetPosition.latitude, targetPosition.longitude);
 
-      timeBetweenPings = (distance).toInt();
+      //timeBetweenPings = distance.toInt();
+      timeBetweenPings = pow(log(distance), 4).toInt();
+      timeBetweenPings = max(200, min(timeBetweenPings, 5000));
     }
   }
 
@@ -234,35 +239,5 @@ class GameState extends State<GameInstance> {
     );
 
     return target;
-  }
-}
-
-void _playSonarPing1(List<dynamic> args) async {
-  SendPort sendToMain = args[0];
-  LatLng targetPosition = args[1];
-
-  ReceivePort receiver = ReceivePort();
-  sendToMain.send(receiver.sendPort);
-
-  int timeBetweenPings = 1000;
-
-  while (true) {
-    print(timeBetweenPings);
-    sendToMain.send(timeBetweenPings);
-
-    await Future.delayed(Duration(milliseconds: timeBetweenPings));
-
-    var r = await receiver.take(1).first;
-    LatLng userPosition = LatLng(r[0], r[1]);
-
-    print(userPosition);
-
-    double distance = Geolocator.distanceBetween(
-        userPosition.latitude,
-        userPosition.longitude,
-        targetPosition.latitude,
-        targetPosition.longitude);
-
-    timeBetweenPings = (distance / 1000).toInt();
   }
 }
