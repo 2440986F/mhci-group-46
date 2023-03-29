@@ -62,8 +62,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets\sounds\sonar-ping-95840.mp3
-    - assets\sounds\click-21156.mp3
+    - assets/sounds/sonar-ping-95840.mp3
+    - assets/sounds/click-21156.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:
