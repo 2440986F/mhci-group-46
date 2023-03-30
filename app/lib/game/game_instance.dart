@@ -5,7 +5,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_application_2/game/screens/map/map.dart';
+import 'package:radsonar/game/screens/map/map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -98,7 +98,7 @@ class GameState extends State<GameInstance> {
           if (message is SendPort) {
             widget.sendToPingIsolate = message;
           } else {
-            widget.audioPlayer.play(AssetSource('sounds/click-21156.mp3'));
+            widget.audioPlayer.play(AssetSource('sounds/sonar-ping-95840.mp3'));
             //Geolocator.getLastKnownPosition().then((value) {
             widget.sendToPingIsolate?.send([
               widget.lastPosition!.latitude,

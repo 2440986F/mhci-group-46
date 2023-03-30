@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_2/game/game_instance.dart';
+import 'package:radsonar/game/game_instance.dart';
 import 'game/screens/map/map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,50 +11,87 @@ void main() {
         if (permissionAllowed == LocationPermission.denied)
           {Geolocator.requestPermission().then((value) => {})}
       });
-  runApp(MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AccountDataModel(),
+      child: const MyApp(),
+    ));
 }
 
-final accountInfoKey = GlobalKey<_AccountWidgetState>();
+class AccountDataModel extends ChangeNotifier {
+  bool _loggedIn = false;
+  String _username = "";
+  int _points = 0;
 
-class MenuScreen extends StatelessWidget {
+  bool get loggedIn => _loggedIn;
+  String get username => _username;
+  int get points => _points;
+
+  void logIn(String name) {
+    _username = name;
+    _loggedIn = true;
+    notifyListeners();
+  }
+
+  void addPoints(int newPoints){
+    _points += newPoints;
+  }
+
+}
+
+class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
 
   @override
+  State<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends State<MenuScreen> {
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Menu'),
-      ),
-      body: Center(
-          child: ListView(padding: const EdgeInsets.all(8), children: <Widget>[
-        Container(
-          height: 50,
-          color: Colors.blue,
-          child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/game_home');
-              },
-              child: const Text('Play')),
-        ),
-        const Divider(),
-        Container(
-          height: 50,
-          color: Colors.blue,
-          child:
-              ElevatedButton(onPressed: () {
-                Navigator.pushNamed(context, '/account');
-              }, child: const Text('Account')),
-        ),
-        const Divider(),
-        Container(
-          height: 50,
-          color: Colors.blue,
-          child:
-              ElevatedButton(onPressed: () {
-                Navigator.pushNamed(context, '/leaderboard');
-              }, child: const Text('Leaderboard')),
-        ),
-      ])),
+    return Consumer<AccountDataModel>(
+      builder: (context, accountData, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Menu'),
+          ),
+          body: Center(
+              child: ListView(padding: const EdgeInsets.all(8), children: <Widget>[
+            Container(
+              height: 50,
+              color: Colors.blue,
+              child: ElevatedButton(
+                  onPressed: () {
+                    if (accountData.loggedIn){
+                      Navigator.pushNamed(context, '/game_home');
+                    }else{
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please log in before playing')));
+                    }
+                  },
+                  child: const Text('Play')),
+            ),
+            const Divider(),
+            Container(
+              height: 50,
+              color: Colors.blue,
+              child:
+                  ElevatedButton(onPressed: () {
+                    Navigator.pushNamed(context, '/account');
+                  }, child: const Text('Account')),
+            ),
+            const Divider(),
+            Container(
+              height: 50,
+              color: Colors.blue,
+              child:
+                  ElevatedButton(onPressed: () {
+                    Navigator.pushNamed(context, '/leaderboard');
+                  }, child: const Text('Leaderboard')),
+            ),
+          ])),
+        );
+      }
     );
   }
 }
@@ -66,17 +104,18 @@ class AccountWidget extends StatefulWidget {
 }
 
 class _AccountWidgetState extends State<AccountWidget> {
-  bool _loggedIn = false;
-  bool get loggedIn => _loggedIn;
-  String _username = "";
-  String get username => _username;
+  //bool _loggedIn = false;
+  //bool get loggedIn => _loggedIn;
+  //String _username = "";
+  //String get username => _username;
   TextEditingController usernameController = TextEditingController();
 
-  buildAccountPage(){
-      if (_loggedIn){
+  buildAccountPage(accountData){
+      if (accountData.loggedIn){
         return <Widget>[
-          SizedBox(child: Text("Hello, $_username \n"),),
-          SizedBox(child: Text("You have 15 points. Check out the leaderboard to see how your friends are doing")),
+          
+          SizedBox(child: Text("Hello, ${accountData.username} \n"),),
+          SizedBox(child: Text("You have ${accountData.points} points. Check out the leaderboard to see how your friends are doing")),
           const Divider(),
           ElevatedButton(onPressed: () {
             Navigator.pushNamed(context, '/leaderboard');
@@ -102,10 +141,7 @@ class _AccountWidgetState extends State<AccountWidget> {
               obscureText: true,
             ),
             ElevatedButton(onPressed: () {
-               setState(() {
-                _username = usernameController.text;
-                _loggedIn = true;
-                });
+                accountData.logIn(usernameController.text);
               
             }, child: const Text('Log In')),
           ];
@@ -114,13 +150,19 @@ class _AccountWidgetState extends State<AccountWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Account'),
-      ),
-      body: Center(
-          child: ListView(padding: const EdgeInsets.all(8), children: buildAccountPage())),
-    );
+    return Consumer<AccountDataModel>(
+      builder: (context, accountData, child) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Account'),
+          ),
+          body: Center(
+              child: ListView(padding: const EdgeInsets.all(8), children: buildAccountPage(accountData))
+          ),
+        );
+    },
+  );
+    
 
   }
 }
@@ -130,24 +172,32 @@ class LeaderBoardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Leaderboard'),
-      ),
-      body: Center(
-          child: ListView(padding: const EdgeInsets.all(8), children: <Widget>[
-        Container(
-          child: const Text("Alice: 155 points")
+    return Consumer<AccountDataModel>(
+    builder: (context, accountData, child) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Leaderboard'),
         ),
-        const Divider(),
-        Container(
-          child: const Text("Bob: 70 points")
-        ),
-        const Divider(),
-        Container(
-          child: const Text("Charlie: 30 points")
-        ),
-      ])),
+        body: Center(
+            child: ListView(padding: const EdgeInsets.all(8), children: <Widget>[
+          Container(
+            child: const Text("Alice: 155 points")
+          ),
+          const Divider(),
+          Container(
+            child: const Text("Bob: 70 points")
+          ),
+          const Divider(),
+          Container(
+            child: const Text("Charlie: 30 points")
+          ),
+          const Divider(),
+          Container(
+            child: Text("${accountData.username}: ${accountData.points} points")
+          ),
+        ])),
+      );
+    }
     );
   }
 }
