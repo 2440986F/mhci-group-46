@@ -1,6 +1,6 @@
-# flutter_application_2
+# radsonar
 
-A new Flutter project.
+A Flutter-based app to encourage exploration by bike.
 
 ## Getting Started
 

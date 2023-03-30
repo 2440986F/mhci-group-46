@@ -1,5 +1,5 @@
-name: flutter_application_2
-description: A new Flutter project.
+name: radsonar
+description: Explore your local area by bike!
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  provider: ^6.0.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -62,8 +63,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets\sounds\sonar-ping-95840.mp3
-    - assets\sounds\click-21156.mp3
+    - assets/sounds/sonar-ping-95840.mp3
+    - assets/sounds/click-21156.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:
